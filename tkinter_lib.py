@@ -6,41 +6,70 @@ from PIL import Image, ImageTk
 from tkinter.filedialog import asksaveasfilename
 from datetime import datetime, timedelta
 import time
+import json
 
 save_timer = time.time()
 
 
-def setdata(device_list, entry_list):
-    
-    hp_list = device_list['HP']
-    mfc_list = device_list['MFC']
-    T_entries = entry_list['T']
-    MFC_entries = entry_list['MFC']
-    
-    for index, hp_instance in enumerate(hp_list):
-        offset = 0 if index < 4 else  4
-        if T_entries[index-offset].get() != '':
-            hp_instance.set_t_soll(float(T_entries[index-offset].get()))
-            
-    for index, mfc_instance in enumerate(mfc_list):
-        if MFC_entries[index].get() != '':
-            mfc_instance.set(float(MFC_entries[index].get()))
+class TKH:
+    def __init__(self, json_name):
 
-def setup_gui(config, img):
+        with open('./json_files/' + json_name + '.json', 'r') as config_file:
+            config = json.load(config_file)
+
+
+        window = ctk.CTk()
+        ctk.set_appearance_mode("light")
+        scrW = window.winfo_screenwidth()
+        scrH = window.winfo_screenheight()
+        scrW = 1280
+        scrH = 720
+        window.geometry(f"{scrW}x{scrH}")
+        window.title(config['TKINTER']['Name'])
+        window.configure(bg=config['TKINTER']['background-color'])
+    # window.attributes('-fullscreen', True)    
+
+        bg_image = ctk.CTkImage(Image.open(config['Background']['name']), size=(int(config['Background']['width']), int(config['Background']['height'])))
+        label_background = ctk.CTkLabel(window, image=bg_image, text="")
+        label_background.place(x=config['Background']['x'], y=config['Background']['y'])
+        label_background.lower()
+
+        
+        #----------- Frames ----------
+        frames ={}
+        frames['control'] = ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
+        frames['control'].grid(column=0, row=1, padx=20, pady=20, ipadx = 20, ipady = 15)
+
+        name_Frame = ctk.CTkLabel( frames['control'], font = ('Arial',20), text='Steuerung')
+        name_Frame.grid(column=0, columnspan =2, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
+
+        frames['timer'] = ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
+        frames['timer'].grid(column=1, row=0, padx=20, pady=20, ipadx = 20, ipady = 15)
+        
+        frames['mfc']=ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
+        frames['mfc'].grid(column=0, row=3, padx=20, pady=20, ipadx = 20, ipady = 15)
+        tkinter_data = {window, frames, config}
+
+
+def setup_gui(json_name):
+    with open('./json_files/' + json_name + '.json', 'r') as config_file:
+        config = json.load(config_file)
+
+
     window = ctk.CTk()
     ctk.set_appearance_mode("light")
     scrW = window.winfo_screenwidth()
     scrH = window.winfo_screenheight()
-    scrW = 1100
-    scrH = 700
+    scrW = config['Background']['width']
+    scrH = config['Background']['height']
     window.geometry(f"{scrW}x{scrH}")
-    window.title(config['CONTROL']['Name'])
+    window.title(config['TKINTER']['Name'])
     window.configure(bg=config['TKINTER']['background-color'])
    # window.attributes('-fullscreen', True)    
 
-    bg_image = ctk.CTkImage(Image.open(img['Background']['name']), size=(int(img['Background']['width']), int(img['Background']['height'])))
+    bg_image = ctk.CTkImage(Image.open(config['Background']['name']), size=(int(config['Background']['width']), int(config['Background']['height'])))
     label_background = ctk.CTkLabel(window, image=bg_image, text="")
-    label_background.place(x=img['Background']['x'], y=img['Background']['y'])
+    label_background.place(x=config['Background']['x'], y=config['Background']['y'])
     label_background.lower()
 
     
@@ -51,86 +80,93 @@ def setup_gui(config, img):
 
     name_Frame = ctk.CTkLabel( frames['control'], font = ('Arial',20), text='Steuerung')
     name_Frame.grid(column=0, columnspan =2, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
+
+    frames['timer'] = ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
+    frames['timer'].grid(column=1, row=0, padx=20, pady=20, ipadx = 20, ipady = 15)
     
     frames['mfc']=ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
     frames['mfc'].grid(column=0, row=3, padx=20, pady=20, ipadx = 20, ipady = 15)
-
-    return window, frames
-
-def create_tc_labels(window, tc_list, img):
-    labels = {}
-    x_offset = img['Background']['x']
-    y_offset = img['Background']['y']
-    for i, tc_instance in enumerate(tc_list):
-        labels[i] = ctk.CTkLabel(window, font=('Arial', 16), text='0 °C')
-        labels[i].place(x=x_offset + img['T-Reaktor']['x'][i], y=y_offset + img['T-Reaktor']['y'][i])
-    return labels
-
-def create_p_labels(window, pressure_list, config):
-    labels = {}
-    for i, pressure_instance in enumerate(pressure_list):
-        labels[i] = ctk.CTkLabel(window, font=('Arial', 16), text='0 mV')
-        labels[i].place(x = config['Pressure']['x'][i], y = config['Pressure']['y'][i])
-    return labels
-
-def create_hp_labels(window, hp_list, img):
-    labels = {}
-    x_offset = img['Background']['x']
-    y_offset = img['Background']['y']
-    for i, hp_instance in enumerate(hp_list):
-        labels[i] = ctk.CTkLabel(window, font=('Arial', 16), text='0 %')
-        labels[i].place(x=x_offset -1 + img['T-Reaktor']['x'][i], y=y_offset +20 + img['T-Reaktor']['y'][i])
-    return labels
-
-def create_ABB_labels(window, ABB_list, frames, config):
-    labels = {}
-    name_Frame = ctk.CTkLabel( frames['ABB'], font = ('Arial',20), text='ABB Gasanalyse')
-    name_Frame.grid(column=0, columnspan =3, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
     
-    name={}; 
+    return window, frames, config
 
-    for i, ABB_instance in enumerate(ABB_list):
-        name[i]= ctk.CTkLabel( frames['ABB'], font = ('Arial',16), text=config['ABB']['name'][i])
-        name[i].grid(column=1, row=i+1, ipadx=5, ipady=7)
+def tk_loopNew(window, tfh_obj, labels, entries)   :
+    global save_timer
+    i = 0
 
-        labels[i] = ctk.CTkLabel(frames['ABB'], font = ('Arial',16), text='0 mA')
-        labels[i].grid(column=3, row=i+1, ipadx=7, ipady=7)
-    return labels
+    for control_name, control_rule in tfh_obj.config.items():
+        input_channel = control_rule.get("input_channel")
+        input_device_uid = control_rule.get("input_device")
+        output_channel = control_rule.get("output_channel")
+        output_device_uid = control_rule.get("output_device")
+        gradient = control_rule.get("gradient")
+        y_axis = control_rule.get("y-axis")
+        unit = control_rule.get("unit")
+        device_type = control_rule.get("type")
 
-def create_mfc_labels(window, mfc_list, frames, config):
+
+        if device_type == "mfc":
+            # Handle Output        
+            if entries['MFC'][i].get() != '':    
+                value =  float(entries['MFC'][i].get())/gradient  + y_axis
+                tfh_obj.outputs[output_device_uid].val[output_channel] = value
+            # @TODO: needs to be neater
+            for element in [gradient, y_axis]:
+                if element is None:
+                    print("missing control config")
+                    exit()
+            input_val = tfh_obj.inputs[input_device_uid].values[input_channel]
+            converted_value = (input_val - y_axis) * gradient   
+            labels['MFC'][i].configure(text=f"{round(converted_value, 2)} " + unit )
+            i = i+1
+    window.after(50, tk_loopNew, window, tfh_obj, labels, entries) 
+
+
+def create_entries(tfh_obj, frames):
+    entries = {}
+    MFCs = {}
+    i = 0
+    for control_name, control_rule in tfh_obj.config.items():
+        device_type = control_rule.get("type")
+        if device_type == "mfc":
+            MFCs[i] = tk.Entry(frames['mfc'], font=('Arial', 16), width=6, bg='light blue')
+            MFCs[i].grid(column=2, row=i+1, ipadx=5, ipady=7)
+            i = i+1
+
+    
+    entries = {'MFC' : MFCs}
+    return entries
+
+def create_labels(tfh_obj,  frames, config):
     labels = {}
+    MFCs = {}
+    i = 0
     name_Frame = ctk.CTkLabel( frames['mfc'], font = ('Arial',20), text='MFC Steuerung')
     name_Frame.grid(column=0, columnspan =3, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
     
     name_MFC={};  unit_MFC={}; 
 
-    for i, mfc_instance in enumerate(mfc_list):
-        name_MFC[i]= ctk.CTkLabel( frames['mfc'], font = ('Arial',16), text=config['MFC']['name'][i])
-        name_MFC[i].grid(column=1, row=i+1, ipadx=5, ipady=7)
-        
-        unit_MFC[i]= ctk.CTkLabel( frames['mfc'], font = ('Arial',16), text=' mV')
-        unit_MFC[i].grid(column=3, row=i+1, ipadx=1, ipady=7)
-        if mfc_instance.m > 0:
-            unit_MFC[i].configure(text= mfc_instance.unit )
+    for control_name, control_rule in tfh_obj.config.items():
+        device_type = control_rule.get("type")
+        gradient = control_rule.get("gradient")
+        unit = control_rule.get("unit")
+        if device_type == "mfc":
+            name_MFC[i]= ctk.CTkLabel( frames['mfc'], font = ('Arial',16), text=control_name)
+            name_MFC[i].grid(column=1, row=i+1, ipadx=5, ipady=7)
+            
+            unit_MFC[i]= ctk.CTkLabel( frames['mfc'], font = ('Arial',16), text=' mV')
+            unit_MFC[i].grid(column=3, row=i+1, ipadx=1, ipady=7)
+            if gradient > 0:
+                unit_MFC[i].configure(text= unit)
 
-        labels[i] = ctk.CTkLabel(frames['mfc'], font = ('Arial',16), text='0 mV')
-        labels[i].grid(column=4, row=i+1, ipadx=7, ipady=7)
+            MFCs[i] = ctk.CTkLabel(frames['mfc'], font = ('Arial',16), text='0 mV')
+            MFCs[i].grid(column=4, row=i+1, ipadx=7, ipady=7)
+            i = i+1
+        
+    labels = {'MFC' : MFCs}
+
     return labels
 
 
-def create_set_temperature_entries(window, img, x_offset, y_offset):
-    entries = {}
-    for i in range(1):
-        entries[i] = tk.Entry(window, font=('Arial', 16), width=6, bg='light blue')
-        entries[i].place(x=x_offset + img['T-Set']['x'][i], y=y_offset + img['T-Set']['y'][i])
-    return entries
-
-def create_set_mfc_entries(window, mfc_list, frames):
-    entries = {}
-    for i, hp_instance in enumerate(mfc_list):
-        entries[i] = tk.Entry(frames['mfc'], font=('Arial', 16), width=6, bg='light blue')
-        entries[i].grid(column=2, row=i+1, ipadx=0, ipady=7)
-    return entries
 
 def getfile(entry_list, label_list):
     entry_list['File'] = asksaveasfilename(defaultextension = ".dat", initialdir= "D:/Daten/")
@@ -181,6 +217,8 @@ def save_values(device_list, label_list, entry_list):
                 line += str(pressure_instance.value) + '\t'
         line += ' \n'
         f.writelines(line)
+
+
 
 def tk_loop(window, device_list, label_list, entry_list) :
     global save_timer
