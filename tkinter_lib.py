@@ -79,7 +79,7 @@ def setdata(tk_obj, tfh_obj):
 
 
 def setup_gui(json_name):
-    with open('./json_files/' + json_name + '.json', 'r') as config_file:
+    with open('./' + json_name + '.json', 'r') as config_file:
         config = json.load(config_file)
 
 
@@ -87,12 +87,15 @@ def setup_gui(json_name):
     ctk.set_appearance_mode("light")
     scrW = window.winfo_screenwidth()
     scrH = window.winfo_screenheight()
-    scrW = config['Background']['width']
-    scrH = config['Background']['height']
-    window.geometry(f"{scrW}x{scrH}")
+    if isinstance(config['TKINTER']['screen_width'], (int, float)) and isinstance(config['TKINTER']['screen_height'], (int, float)):
+        scrW = config['TKINTER']['screen_width']
+        scrH = config['TKINTER']['screen_height']
+        window.geometry(f"{scrW}x{scrH}")
+    else:
+        window.attributes('-fullscreen', True)    
     window.title(config['TKINTER']['Name'])
     window.configure(bg=config['TKINTER']['background-color'])
-    #window.attributes('-fullscreen', True)    
+
 
     bg_image = ctk.CTkImage(Image.open(config['Background']['name']), size=(int(config['Background']['width']), int(config['Background']['height'])))
     close_img = ctk.CTkImage(Image.open(config['Close']['name']),size=(80, 80))
@@ -105,17 +108,24 @@ def setup_gui(json_name):
     Exit_Button.place(x=config['Close']['x'], y=config['Close']['y'])
     #----------- Frames ----------
     frames ={}
-    frames['control'] = ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
-    frames['control'].grid(column=0, row=1, padx=20, pady=20, ipadx = 20, ipady = 15)
+    frames['control'] = ctk.CTkFrame(
+    window,
+    fg_color=config['TKINTER']['background-color'],
+    border_color=config['TKINTER']['border-color'],
+    border_width=5,
+    width=300  # Beispiel: Breite auf 300 Pixel setzen
+    )
+    frames['control'].grid(column=0, row=0, padx=20, pady=20, ipadx=20, ipady=15)
+    frames['control'].grid_propagate(False)
 
-    name_Frame = ctk.CTkLabel( frames['control'], font = ('Arial',20), text='Steuerung')
+    name_Frame = ctk.CTkLabel( frames['control'], font = ('Arial',20), text='Handsteuerung')
     name_Frame.grid(column=0, columnspan =2, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
 
     frames['timer'] = ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
     frames['timer'].grid(column=1, row=0, padx=20, pady=20, ipadx = 20, ipady = 15)
     
     frames['mfc']=ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
-    frames['mfc'].grid(column=0, row=3, padx=20, pady=20, ipadx = 20, ipady = 15)
+    frames['mfc'].grid(column=0, row=1, padx=20, pady=20, ipadx = 20, ipady = 15)
     tkinter = window
     tkinter.frames = frames
     tkinter.config = config
@@ -230,7 +240,7 @@ def setup_controller(tk_obj, tfh_obj): #Function for Tkinter
             P_val = control_rule.get("P_Value")
             I_val = control_rule.get("I_Value")
             PIs[i_PI] = easy_PI(out_device, out_channel, tfh_obj.inputs[in_device], 0, P_val, I_val)
-            PIs[i_PI].entry = tk.Entry(tk_obj, font=('Arial', 16), width=6, bg='light blue')
+            PIs[i_PI].entry = ctk.CTkEntry(tk_obj, font=('Arial', 16), width=50, fg_color='light blue')
             PIs[i_PI].entry.place(x=  control_rule.get("x"), y= control_rule.get("y"))
             PIs[i_PI].label =  ctk.CTkLabel(tk_obj, font = ('Arial',16), text='0 %')
             PIs[i_PI].label.place(x=  control_rule.get("x"), y= control_rule.get("y") + 35)
@@ -246,8 +256,8 @@ def setup_controller(tk_obj, tfh_obj): #Function for Tkinter
 
 def create_buttons(tk_obj, tfh_obj):
  #----------- Buttons -----------
-    set_button = tk.Button(tk_obj.frames['control'],text='Set Values', command = lambda: setdata(tk_obj, tfh_obj), bg='brown', fg='white')
-    set_button.grid(column=1, row=0, ipadx=8, ipady=8)
+    set_button = tk.Button(tk_obj.frames['control'],text='Set Values', font=('Arial', 16),  command = lambda: setdata(tk_obj, tfh_obj), bg='brown', fg='white')
+    set_button.grid(column=0, row=1, ipadx=8, ipady=8)
 
     tk_obj.buttons = {'Set': set_button}
     return tk_obj
