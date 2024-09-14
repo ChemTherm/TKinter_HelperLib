@@ -73,8 +73,8 @@ def setdata(tk_obj, tfh_obj):
                 value =  float(controller['easy_PI'][i_PI].entry.get())
                 if controller['easy_PI'][i_PI].running == False:
                     controller['easy_PI'][i_PI].start(value)
-                controller_value = controller['easy_PI'][i_PI].out
-                tfh_obj.outputs[output_device_uid].values[output_channel] = controller_value
+                else:
+                    controller['easy_PI'][i_PI].set_soll(value)
             i_PI = i_PI+1  
 
 
@@ -172,7 +172,9 @@ def tk_loopNew(tk_obj, tfh_obj)   :
             controller['easy_PI'][i_PI].regeln()
             converted_value = controller['easy_PI'][i_PI].out*100
             controller['easy_PI'][i_PI].label.configure(text=f"{round(converted_value, 2)} " + unit )
+            tfh_obj.outputs[output_device_uid].values[output_channel] = converted_value
             i_PI = i_PI+1
+
     tk_obj.after(50, tk_loopNew, tk_obj, tfh_obj) 
 
 
@@ -235,11 +237,14 @@ def setup_controller(tk_obj, tfh_obj): #Function for Tkinter
         if device_type == "easy_PI":
             out_device = control_rule.get("output_device")
             out_channel = control_rule.get("output_channel")
-            in_device = tfh_obj.config[control_rule.get("input_device")].get("input_device")
-
             P_val = control_rule.get("P_Value")
             I_val = control_rule.get("I_Value")
-            PIs[i_PI] = easy_PI(out_device, out_channel, tfh_obj.inputs[in_device], 0, P_val, I_val)
+            if "extern" in control_rule.get("input_device", "").lower():
+                PIs[i_PI] = easy_PI(out_device, out_channel, "extern", 0, P_val, I_val)
+            else:
+                in_device = tfh_obj.config[control_rule.get("input_device")].get("input_device")
+                PIs[i_PI] = easy_PI(out_device, out_channel, tfh_obj.inputs[in_device], 0, P_val, I_val)
+
             PIs[i_PI].entry = ctk.CTkEntry(tk_obj, font=('Arial', 16), width=50, fg_color='light blue')
             PIs[i_PI].entry.place(x=  control_rule.get("x"), y= control_rule.get("y"))
             PIs[i_PI].label =  ctk.CTkLabel(tk_obj, font = ('Arial',16), text='0 %')
