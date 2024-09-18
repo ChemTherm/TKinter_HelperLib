@@ -58,7 +58,7 @@ def setdata(tk_obj, tfh_obj):
     controller = tk_obj.controller
     for control_name, control_rule in tfh_obj.config.items():
         device_type = control_rule.get("type"); output_channel = control_rule.get("output_channel"); output_device_uid = control_rule.get("output_device")
-        gradient = control_rule.get("gradient"); y_axis = control_rule.get("y-axis"); unit = control_rule.get("unit")
+        gradient = control_rule["DeviceInfo"].get("gradient"); y_axis = control_rule["DeviceInfo"].get("y-axis"); unit = control_rule["DeviceInfo"].get("unit")
     
         if device_type == "mfc":
             if entries['MFC'][i_MFC].get() != '':    
@@ -144,10 +144,10 @@ def tk_loopNew(tk_obj, tfh_obj)   :
         input_channel = control_rule.get("input_channel")
         input_device_uid = control_rule.get("input_device")
         output_channel = control_rule.get("output_channel")
-        output_device_uid = control_rule.get("output_device")
-        gradient = control_rule.get("gradient")
-        y_axis = control_rule.get("y-axis")
-        unit = control_rule.get("unit")
+        output_device_uid = control_rule.get("output_device")       
+        gradient =  control_rule["DeviceInfo"].get("gradient")
+        y_axis =  control_rule["DeviceInfo"].get("y-axis")
+        unit = control_rule["DeviceInfo"].get("unit")
         device_type = control_rule.get("type")        
 
 
@@ -208,7 +208,8 @@ def create_labels(tk_obj, tfh_obj):
     for control_name, control_rule in tfh_obj.config.items():
         device_type = control_rule.get("type")
         if device_type == "mfc":
-            gradient = control_rule.get("gradient"); unit = control_rule.get("unit")
+
+            gradient = control_rule["DeviceInfo"].get("gradient"); unit = control_rule["DeviceInfo"].get("unit")
             name_MFC[i_MFC]= ctk.CTkLabel( frames['mfc'], font = ('Arial',16), text=control_name)
             name_MFC[i_MFC].grid(column=1, row=i_MFC+1, ipadx=5, ipady=7)
             
@@ -237,8 +238,8 @@ def setup_controller(tk_obj, tfh_obj): #Function for Tkinter
         if device_type == "easy_PI":
             out_device = control_rule.get("output_device")
             out_channel = control_rule.get("output_channel")
-            P_val = control_rule.get("P_Value")
-            I_val = control_rule.get("I_Value")
+            P_val = control_rule["DeviceInfo"].get("P_Value")
+            I_val = control_rule["DeviceInfo"].get("I_Value")
             if "extern" in control_rule.get("input_device", "").lower():
                 PIs[i_PI] = easy_PI(out_device, out_channel, "extern", 0, P_val, I_val)
             else:
