@@ -8,8 +8,10 @@ from datetime import datetime, timedelta
 from utilities.regler import *
 import time
 import json
+import os
 
 save_timer = time.time()
+write_header = 1
 
 
 class TKH:
@@ -121,8 +123,8 @@ def setup_gui(json_name):
     name_Frame = ctk.CTkLabel( frames['control'], font = ('Arial',20), text='Handsteuerung')
     name_Frame.grid(column=0, columnspan =2, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
 
-    frames['timer'] = ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
-    frames['timer'].grid(column=1, row=0, padx=20, pady=20, ipadx = 20, ipady = 15)
+    """ frames['timer'] = ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
+    frames['timer'].grid(column=1, row=0, padx=20, pady=20, ipadx = 20, ipady = 15) """
     
     frames['mfc']=ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
     frames['mfc'].grid(column=0, row=1, padx=20, pady=20, ipadx = 20, ipady = 15)
@@ -138,6 +140,7 @@ def tk_loopNew(tk_obj, tfh_obj)   :
     labels = tk_obj.labels
     entries = tk_obj.entries
     controller = tk_obj.controller
+    buttons = tk_obj.buttons
     i_MFC = 0; i_Tc = 0;  i_PI = 0
 
     for control_name, control_rule in tfh_obj.config.items():
@@ -175,6 +178,10 @@ def tk_loopNew(tk_obj, tfh_obj)   :
             tfh_obj.outputs[output_device_uid].values[output_channel] = converted_value
             i_PI = i_PI+1
 
+        if buttons['Save'].get() == 1 and save_timer - time.time()< 0:
+            save_values(tk_obj, tfh_obj)
+            save_timer = time.time() + 1000/1000
+
     tk_obj.after(50, tk_loopNew, tk_obj, tfh_obj) 
 
 
@@ -191,7 +198,8 @@ def create_entries(tk_obj, tfh_obj):
             i = i+1
 
     
-    tk_obj.entries = {'MFC' : MFCs}
+    saveFile_Entrie = "C:/Users/Technikum/TTI GmbH TGU ChemTherm 4142/Steuerungen - Python/Daten/test.dat"
+    tk_obj.entries = {'MFC' : MFCs, 'SaveFile':saveFile_Entrie}
     return tk_obj
 
 def create_labels(tk_obj, tfh_obj):
@@ -226,7 +234,17 @@ def create_labels(tk_obj, tfh_obj):
             Tcs[i_Tc].place(x=  control_rule.get("x"), y= control_rule.get("y"))
             i_Tc = i_Tc+1 # inkrement 
         
-    tk_obj.labels = {'MFC' : MFCs, 'Tc': Tcs}
+
+    # Label aktualisieren
+    # Übergeordneter Ordner und Dateiname
+    parent_folder = os.path.basename(os.path.dirname(tk_obj.entries['SaveFile']))  # Der übergeordnete Ordner
+    file_name = os.path.basename(tk_obj.entries['SaveFile'])  # Der Dateiname
+    short_text = f"{parent_folder}/{file_name}"
+    # Label aktualisieren
+    save_label = ctk.CTkLabel(frames['control'], font=('Arial', 16), text=short_text)
+    save_label.grid(column=0, columnspan = 2, row=3, ipadx=7, ipady=7)
+
+    tk_obj.labels = {'MFC' : MFCs, 'Tc': Tcs, 'Save': save_label}
 
     return tk_obj
 
@@ -265,12 +283,23 @@ def create_buttons(tk_obj, tfh_obj):
     set_button = tk.Button(tk_obj.frames['control'],text='Set Values', font=('Arial', 16),  command = lambda: setdata(tk_obj, tfh_obj), bg='brown', fg='white')
     set_button.grid(column=0, row=1, ipadx=8, ipady=8)
 
-    tk_obj.buttons = {'Set': set_button}
+    save_switch =  ctk.CTkSwitch(tk_obj.frames['control'], font=('Arial', 16), text="Speichern")
+    save_switch.grid(column=2, row=1, ipadx=7, ipady=7)
+
+    get_filename = tk.Button(tk_obj.frames['control'], text = 'Data File', font=('Arial', 16),  command = lambda: getfile(tk_obj.entries, tk_obj.labels), bg='brown', fg='white')
+    get_filename.grid(column= 0, row = 2, ipadx=7, ipady=7)
+
+    tk_obj.buttons = {'Set': set_button, 'Save':save_switch}
     return tk_obj
 
-def getfile(entry_list, label_list):
-    entry_list['File'] = asksaveasfilename(defaultextension = ".dat", initialdir= "D:/Daten/")
-    label_list['Save'].configure(text=entry_list['File'])
+def getfile(entries,  labels):
+
+    entries['SaveFile'] = asksaveasfilename(defaultextension = ".dat", initialdir= "C:/Users/Technikum/TTI GmbH TGU ChemTherm 4142/Steuerungen - Python/Daten/")
+    parent_folder = os.path.basename(os.path.dirname(entries['SaveFile']))  # Der übergeordnete Ordner
+    file_name = os.path.basename(entries['SaveFile'])  # Der Dateiname
+    short_text = f"{parent_folder}/{file_name}"
+    # Label aktualisieren
+    labels['Save'].configure(text=short_text)
 
 def setup_frames_labels_buttons(window, frames, img, device_list, entry_list, label_list):
     
@@ -292,31 +321,83 @@ def setup_frames_labels_buttons(window, frames, img, device_list, entry_list, la
     
     return  save_switch 
 
-def save_values(device_list, label_list, entry_list):
-    tc_list = device_list['T']
-    hp_list = device_list['HP']
-    mfc_list = device_list['MFC']
-    ABB_list = device_list['ABB']
-    pressure_list = device_list['P']
+def save_values(tk_obj, tfh_obj):
+    global write_header
+    window = tk_obj
+    labels = tk_obj.labels
+    entries = tk_obj.entries
+    controller = tk_obj.controller
+    buttons = tk_obj.buttons
+    i_MFC = 0; i_Tc = 0;  i_PI = 0
 
-    with open(entry_list['File'], 'a') as f:
+    """ #write Header
+    if write_header==1:
+        with open(entries['SaveFile'], 'a') as f:
+        line = '### Device Informations at ' + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f") + ':\n'
+        f.write(line)        
+        # Formatiere den MFC_Air-Eintrag und füge ihn an die Datei an
+        formatted_data = json.dumps(config["MFC_Air"], indent=4)
+        f.write(formatted_data + '\n')
+
+        with open(entries['SaveFile'], 'a') as f:
+            line ='### Device Informations at '+ datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f ")+ ':\n'
+            file.write(json.dumps(config["MFC_Air"], indent=4))
+
+        write_header=0 """
+    
+    if write_header==1:
+        with open(entries['SaveFile'], 'a') as f:
+            line = '### Device Names \n'
+            for control_name, control_rule in tfh_obj.config.items():
+                device_type = control_rule.get("type") 
+                
+                if device_type == "mfc":  
+                    line += str(control_name) + '_Soll \t' +str(control_name) + '_Ist \t'
+                else:                
+                    line += str(control_name) + '\t'
+            line += ' \n'
+            f.writelines(line)      
+        write_header=0
+
+
+
+
+    #write Data
+    with open(entries['SaveFile'], 'a') as f:
+
         line = ' ' + datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f ")+ '\t'
-        for index, tc_instance in enumerate(tc_list):
-            line += str(tc_instance.t) + '\t'
-        for index, hp_instance in enumerate(hp_list):
-            line += str(hp_instance.pwroutput) + '\t'
-        for index, mfc_instance in enumerate(mfc_list):
-            if mfc_instance.m > 0:
-                line += str(entry_list['MFC'][index].get()) + ' \t '+ str(mfc_instance.value) + ' \t '
-            else:
-                line += str(entry_list['MFC'][index].get()) + ' \t '+ str(mfc_instance.Voltage) + ' \t '
-        for index, pressure_instance in enumerate(pressure_list):
-            if pressure_instance.m > 0:
-                line += str(pressure_instance.current) + '\t'
-            else:
-                line += str(pressure_instance.value) + '\t'
+
+        for control_name, control_rule in tfh_obj.config.items():
+            input_channel = control_rule.get("input_channel")
+            input_device_uid = control_rule.get("input_device")
+            output_channel = control_rule.get("output_channel")
+            output_device_uid = control_rule.get("output_device")       
+            gradient =  control_rule["DeviceInfo"].get("gradient")
+            y_axis =  control_rule["DeviceInfo"].get("y-axis")
+            unit = control_rule["DeviceInfo"].get("unit")
+            device_type = control_rule.get("type")  
+
+            if device_type == "thermocouple":
+                input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
+                line += str(input_val) + '\t'
+
+            if device_type == "mfc":  
+                if tfh_obj.operation_mode == 1: #debug Mode
+                    input_val = 0.0      
+                else:
+                    input_val = tfh_obj.inputs[input_device_uid].values[input_channel]            
+                line += str(entries['MFC'][i_MFC].get()) + ' \t '+ str(input_val) + ' \t '
+                i_MFC = i_MFC+1
+
+            if device_type == "easy_PI":
+                converted_value = controller['easy_PI'][i_PI].out*100
+                controller['easy_PI'][i_PI].label.configure(text=f"{round(converted_value, 2)} " + unit )     
+                line += str(converted_value) + ' \t '
+                i_PI = i_PI+1
+
         line += ' \n'
-        f.writelines(line)
+        f.writelines(line)      
+
 
 
 
