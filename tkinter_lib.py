@@ -175,6 +175,11 @@ def tk_loopNew(tk_obj, tfh_obj)   :
             controller['easy_PI'][i_PI].regeln()
             converted_value = controller['easy_PI'][i_PI].out*100
             controller['easy_PI'][i_PI].label.configure(text=f"{round(converted_value, 2)} " + unit )
+            if control_rule.get("output_type") == "analog":
+                # Umrechnen von 0- 100 % auf 4-20 mA
+                #converted_value = 4 + (20-4)/100 * converted_value
+                # Umrechnen von 0- 100 % auf 4-20 mA
+                converted_value = (10)/100 * converted_value
             tfh_obj.outputs[output_device_uid].values[output_channel] = converted_value
             i_PI = i_PI+1
 
