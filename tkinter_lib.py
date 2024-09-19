@@ -194,6 +194,7 @@ def create_entries(tk_obj, tfh_obj):
         device_type = control_rule.get("type")
         if device_type == "mfc":
             MFCs[i] = tk.Entry(frames['mfc'], font=('Arial', 16), width=6, bg='light blue')
+            MFCs[i].insert(0,str("0"))
             MFCs[i].grid(column=2, row=i+1, ipadx=5, ipady=7)
             i = i+1
 
@@ -378,6 +379,10 @@ def save_values(tk_obj, tfh_obj):
             device_type = control_rule.get("type")  
 
             if device_type == "thermocouple":
+                input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
+                line += str(input_val) + '\t'
+                
+            if device_type == "pressure":
                 input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
                 line += str(input_val) + '\t'
 
