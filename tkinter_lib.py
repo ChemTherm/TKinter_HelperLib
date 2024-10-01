@@ -141,7 +141,7 @@ def tk_loopNew(tk_obj, tfh_obj)   :
     entries = tk_obj.entries
     controller = tk_obj.controller
     buttons = tk_obj.buttons
-    i_MFC = 0; i_Tc = 0;  i_PI = 0
+    i_MFC = 0; i_Tc = 0;  i_PI = 0;  i_p = 0
 
     for control_name, control_rule in tfh_obj.config.items():
         input_channel = control_rule.get("input_channel")
@@ -160,6 +160,16 @@ def tk_loopNew(tk_obj, tfh_obj)   :
             labels['Tc'][i_Tc].configure(text=f"{round(input_val, 2)} " + unit )
             i_Tc = i_Tc + 1
 
+        if device_type == "pressure":
+           
+            if tfh_obj.operation_mode == 1: #debug Mode
+                input_val = 0.0      
+            else:   
+                input_val = tfh_obj.inputs[input_device_uid].values[input_channel]
+                #print(input_val)
+            converted_value = (input_val - y_axis) * gradient   
+            labels['Pressure'][i_p].configure(text=f"{round(converted_value, 2)} " + unit )
+            i_p = i_p+1
 
         if device_type == "mfc":
            
@@ -213,8 +223,8 @@ def create_labels(tk_obj, tfh_obj):
     frames = tk_obj.frames
     window = tk_obj
     tk_obj.labels = {}
-    MFCs = {}; Tcs = {}
-    i_MFC = 0; i_Tc = 0
+    MFCs = {}; Tcs = {}; pressure = {}
+    i_MFC = 0; i_Tc = 0; i_p = 0
     name_Frame = ctk.CTkLabel( frames['mfc'], font = ('Arial',20), text='MFC Steuerung')
     name_Frame.grid(column=0, columnspan =3, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
     
@@ -240,6 +250,11 @@ def create_labels(tk_obj, tfh_obj):
             Tcs[i_Tc] = ctk.CTkLabel(window, font = ('Arial',16), text='0 °C')
             Tcs[i_Tc].place(x=  control_rule.get("x"), y= control_rule.get("y"))
             i_Tc = i_Tc+1 # inkrement 
+            
+        elif device_type == "pressure":
+            pressure[i_p] = ctk.CTkLabel(window, font = ('Arial',16), text='0 bar')
+            pressure[i_p].place(x=  control_rule.get("x"), y= control_rule.get("y"))
+            i_p = i_p+1 # inkrement 
         
 
     # Label aktualisieren
@@ -251,7 +266,7 @@ def create_labels(tk_obj, tfh_obj):
     save_label = ctk.CTkLabel(frames['control'], font=('Arial', 16), text=short_text)
     save_label.grid(column=0, columnspan = 2, row=3, ipadx=7, ipady=7)
 
-    tk_obj.labels = {'MFC' : MFCs, 'Tc': Tcs, 'Save': save_label}
+    tk_obj.labels = {'MFC' : MFCs, 'Tc': Tcs, 'Pressure' : pressure, 'Save': save_label}
 
     return tk_obj
 
