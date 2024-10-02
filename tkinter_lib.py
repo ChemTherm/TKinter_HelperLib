@@ -141,7 +141,7 @@ def tk_loopNew(tk_obj, tfh_obj)   :
     entries = tk_obj.entries
     controller = tk_obj.controller
     buttons = tk_obj.buttons
-    i_MFC = 0; i_Tc = 0;  i_PI = 0;  i_p = 0
+    i_MFC = 0; i_Tc = 0;  i_PI = 0;  i_p = 0;  i_exI = 0
 
     for control_name, control_rule in tfh_obj.config.items():
         input_channel = control_rule.get("input_channel")
@@ -194,6 +194,16 @@ def tk_loopNew(tk_obj, tfh_obj)   :
             tfh_obj.outputs[output_device_uid].values[output_channel] = converted_value
             i_PI = i_PI+1
 
+        if device_type == "ExtInput":
+            
+            input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
+            labels['ExtInput'][i_exI].configure(text=f"{round(input_val, 2)} " + "mA" )
+            i_exI = i_exI+1
+            # falls Heizung Steuerwert und Leistung
+            converted_value = (input_val - y_axis) * gradient   
+            labels['ExtInput'][i_exI].configure(text=f"{round(converted_value, 2)} " + unit )
+            i_exI = i_exI+1
+
         if buttons['Save'].get() == 1 and save_timer - time.time()< 0:
             save_values(tk_obj, tfh_obj)
             save_timer = time.time() + 1000/1000
@@ -203,28 +213,34 @@ def tk_loopNew(tk_obj, tfh_obj)   :
 
 def create_entries(tk_obj, tfh_obj):
     frames = tk_obj.frames
+    window = tk_obj
     tk_obj.entries = {}
-    MFCs = {}
-    i = 0
+    MFCs = {}; Vorgabe = {}
+    i = 0; i_V = 0
     for control_name, control_rule in tfh_obj.config.items():
         device_type = control_rule.get("type")
         if device_type == "mfc":
-            MFCs[i] = tk.Entry(frames['mfc'], font=('Arial', 16), width=6, bg='light blue')
+            MFCs[i] = tk.Entry(frames['mfc'], font=('Arial', 18), width=6, bg='light blue')
             MFCs[i].insert(0,str("0"))
             MFCs[i].grid(column=2, row=i+1, ipadx=5, ipady=7)
             i = i+1
+        if device_type == "Vorgabe":
+            Vorgabe[i_V] = tk.Entry(window, font=('Arial', 18), width=4, bg='light blue')
+            Vorgabe[i_V].insert(0,str("0"))
+            Vorgabe[i_V].place(x=  control_rule.get("x"), y= control_rule.get("y"))
+            i_V = i_V+1
 
     
-    saveFile_Entrie = "C:/Users/Technikum/TTI GmbH TGU ChemTherm 4142/Steuerungen - Python/Daten/test.dat"
-    tk_obj.entries = {'MFC' : MFCs, 'SaveFile':saveFile_Entrie}
+    saveFile_Entrie = "../Daten/test.dat"
+    tk_obj.entries = {'MFC' : MFCs, 'SaveFile':saveFile_Entrie, 'Vorgabe' : Vorgabe}
     return tk_obj
 
 def create_labels(tk_obj, tfh_obj):
     frames = tk_obj.frames
     window = tk_obj
     tk_obj.labels = {}
-    MFCs = {}; Tcs = {}
-    i_MFC = 0; i_Tc = 0
+    MFCs = {}; Tcs = {}; pressure = {}; Vorgabe = {}; ExtInput  ={}
+    i_MFC = 0; i_Tc = 0; i_p = 0; i_V = 0; i_exI = 0
 #    name_Frame = ctk.CTkLabel( frames['mfc'], font = ('Arial',20), text='MFC Steuerung')
    # name_Frame.grid(column=0, columnspan =3, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
     
@@ -235,15 +251,15 @@ def create_labels(tk_obj, tfh_obj):
         if device_type == "mfc":
 
             gradient = control_rule["DeviceInfo"].get("gradient"); unit = control_rule["DeviceInfo"].get("unit")
-            name_MFC[i_MFC]= ctk.CTkLabel( frames['mfc'], font = ('Arial',16), text=control_name)
+            name_MFC[i_MFC]= ctk.CTkLabel( frames['mfc'], font = ('Arial',18), text=control_name)
             name_MFC[i_MFC].grid(column=1, row=i_MFC+1, ipadx=5, ipady=7)
             
-            unit_MFC[i_MFC]= ctk.CTkLabel( frames['mfc'], font = ('Arial',16), text=' mV')
+            unit_MFC[i_MFC]= ctk.CTkLabel( frames['mfc'], font = ('Arial',18), text=' mV')
             unit_MFC[i_MFC].grid(column=3, row=i_MFC+1, ipadx=1, ipady=7)
             if gradient > 0: # Set MFC with unit
                 unit_MFC[i_MFC].configure(text= unit)
 
-            MFCs[i_MFC] = ctk.CTkLabel(frames['mfc'], font = ('Arial',16), text='0 mV')
+            MFCs[i_MFC] = ctk.CTkLabel(frames['mfc'], font = ('Arial',18), text='0 mV')
             MFCs[i_MFC].grid(column=4, row=i_MFC+1, ipadx=7, ipady=7)
             i_MFC = i_MFC+1 # inkrement 
         elif device_type == "thermocouple":
@@ -252,9 +268,23 @@ def create_labels(tk_obj, tfh_obj):
             i_Tc = i_Tc+1 # inkrement 
             
         elif device_type == "pressure":
-            pressure[i_p] = ctk.CTkLabel(window, font = ('Arial',16), text='0 bar')
+            pressure[i_p] = ctk.CTkLabel(window, font = ('Arial',18), text='0 bar')
             pressure[i_p].place(x=  control_rule.get("x"), y= control_rule.get("y"))
             i_p = i_p+1 # inkrement 
+        if device_type == "Vorgabe":
+            unit = control_rule["DeviceInfo"].get("unit")
+            Vorgabe[i_V] = ctk.CTkLabel(window, font = ('Arial',18), text=unit)
+            Vorgabe[i_V].place(x=  control_rule.get("x")+55, y= control_rule.get("y"))
+            i_V = i_V+1
+        if device_type == "ExtInput":
+            unit = control_rule["DeviceInfo"].get("unit")
+            ExtInput[i_exI] = ctk.CTkLabel(window, font = ('Arial',18), text='0 mA')
+            ExtInput[i_exI].place(x=  control_rule.get("x"), y= control_rule.get("y"))
+            i_exI = i_exI+1
+            # falls Heizung Steuerwert und Leistung
+            ExtInput[i_exI] = ctk.CTkLabel(window, font = ('Arial',18), text='0 Watt')
+            ExtInput[i_exI].place(x=  control_rule.get("x"), y= control_rule.get("y")+40)
+            i_exI = i_exI+1
         
 
     # Label aktualisieren
@@ -266,7 +296,7 @@ def create_labels(tk_obj, tfh_obj):
     save_label = ctk.CTkLabel(frames['control'], font=('Arial', 16), text=short_text)
     save_label.grid(column=0, columnspan = 2, row=3, ipadx=7, ipady=7)
 
-    tk_obj.labels = {'MFC' : MFCs, 'Tc': Tcs, 'Pressure' : pressure, 'Save': save_label}
+    tk_obj.labels = {'MFC' : MFCs, 'Tc': Tcs, 'Pressure' : pressure, 'Vorgabe' : Vorgabe, 'ExtInput' : ExtInput, 'Save': save_label}
 
     return tk_obj
 
@@ -288,7 +318,7 @@ def setup_controller(tk_obj, tfh_obj): #Function for Tkinter
 
             PIs[i_PI].entry = ctk.CTkEntry(tk_obj, font=('Arial', 16), width=50, fg_color='light blue')
             PIs[i_PI].entry.place(x=  control_rule.get("x"), y= control_rule.get("y"))
-            PIs[i_PI].label =  ctk.CTkLabel(tk_obj, font = ('Arial',16), text='0 %')
+            PIs[i_PI].label =  ctk.CTkLabel(tk_obj, font = ('Arial',18), text='0 %')
             PIs[i_PI].label.place(x=  control_rule.get("x"), y= control_rule.get("y") + 35)
             
             i_PI = i_PI+1 # inkrement 
@@ -328,7 +358,7 @@ def setup_frames_labels_buttons(window, frames, img, device_list, entry_list, la
     save_switch =  ctk.CTkSwitch(frames['control'], font=('Arial', 16), text="Speichern")
     save_switch.grid(column=2, row=2, ipadx=7, ipady=7)
     
-    label_list['Save'] = ctk.CTkLabel(frames['control'], font = ('Arial',16), text=entry_list['File'])
+    label_list['Save'] = ctk.CTkLabel(frames['control'], font = ('Arial',18), text=entry_list['File'])
     label_list['Save'].grid(column=0, columnspan = 4, row=3, ipadx=7, ipady=7)
     
     get_filename = ctk.CTkButton(frames['control'], text = 'Data File', command = lambda: getfile(entry_list, label_list), fg_color = 'brown')
@@ -350,7 +380,7 @@ def save_values(tk_obj, tfh_obj):
     entries = tk_obj.entries
     controller = tk_obj.controller
     buttons = tk_obj.buttons
-    i_MFC = 0; i_Tc = 0;  i_PI = 0
+    i_MFC = 0; i_Tc = 0;  i_PI = 0;  i_V = 0
 
     """ #write Header
     if write_header==1:
@@ -364,12 +394,12 @@ def save_values(tk_obj, tfh_obj):
         with open(entries['SaveFile'], 'a') as f:
             line ='### Device Informations at '+ datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f ")+ ':\n'
             file.write(json.dumps(config["MFC_Air"], indent=4))
-
-        write_header=0 """
+    """
+    
     
     if write_header==1:
         with open(entries['SaveFile'], 'a') as f:
-            line = '### Device Names \n'
+            line = '### Device Names \n Zeitpunkt \t'
             for control_name, control_rule in tfh_obj.config.items():
                 device_type = control_rule.get("type") 
                 
@@ -404,6 +434,14 @@ def save_values(tk_obj, tfh_obj):
                 line += str(input_val) + '\t'
                 
             if device_type == "pressure":
+                input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
+                line += str(input_val) + '\t'
+            
+            if device_type == "Vorgabe": 
+                line += str(entries['Vorgabe'][i_V].get()) + ' \t '
+                i_V = i_V+1
+
+            if device_type == "ExtInput": 
                 input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
                 line += str(input_val) + '\t'
 
