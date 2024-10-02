@@ -126,8 +126,8 @@ def setup_gui(json_name):
     """ frames['timer'] = ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
     frames['timer'].grid(column=1, row=0, padx=20, pady=20, ipadx = 20, ipady = 15) """
     
-    frames['mfc']=ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
-    frames['mfc'].grid(column=0, row=1, padx=20, pady=20, ipadx = 20, ipady = 15)
+#    frames['mfc']=ctk.CTkFrame(window, fg_color = config['TKINTER']['background-color'], border_color = config['TKINTER']['border-color'], border_width=5)
+#    frames['mfc'].grid(column=0, row=1, padx=20, pady=20, ipadx = 20, ipady = 15) 
     tkinter = window
     tkinter.frames = frames
     tkinter.config = config
@@ -223,10 +223,10 @@ def create_labels(tk_obj, tfh_obj):
     frames = tk_obj.frames
     window = tk_obj
     tk_obj.labels = {}
-    MFCs = {}; Tcs = {}; pressure = {}
-    i_MFC = 0; i_Tc = 0; i_p = 0
-    name_Frame = ctk.CTkLabel( frames['mfc'], font = ('Arial',20), text='MFC Steuerung')
-    name_Frame.grid(column=0, columnspan =3, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
+    MFCs = {}; Tcs = {}
+    i_MFC = 0; i_Tc = 0
+#    name_Frame = ctk.CTkLabel( frames['mfc'], font = ('Arial',20), text='MFC Steuerung')
+   # name_Frame.grid(column=0, columnspan =3, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
     
     name_MFC={};  unit_MFC={}; 
 
@@ -247,7 +247,7 @@ def create_labels(tk_obj, tfh_obj):
             MFCs[i_MFC].grid(column=4, row=i_MFC+1, ipadx=7, ipady=7)
             i_MFC = i_MFC+1 # inkrement 
         elif device_type == "thermocouple":
-            Tcs[i_Tc] = ctk.CTkLabel(window, font = ('Arial',16), text='0 °C')
+            Tcs[i_Tc] = ctk.CTkLabel(window, font = ('Arial',18), text='0 °C', bg_color='white')
             Tcs[i_Tc].place(x=  control_rule.get("x"), y= control_rule.get("y"))
             i_Tc = i_Tc+1 # inkrement 
             
