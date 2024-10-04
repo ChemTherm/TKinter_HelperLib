@@ -141,7 +141,7 @@ def tk_loopNew(tk_obj, tfh_obj)   :
     entries = tk_obj.entries
     controller = tk_obj.controller
     buttons = tk_obj.buttons
-    i_MFC = 0; i_Tc = 0;  i_PI = 0;  i_p = 0;  i_exI = 0
+    i_MFC = 0; i_Tc = 0;  i_PI = 0;  i_p = 0;  i_exI = 0;  i_FI = 0
 
     for control_name, control_rule in tfh_obj.config.items():
         input_channel = control_rule.get("input_channel")
@@ -167,9 +167,23 @@ def tk_loopNew(tk_obj, tfh_obj)   :
             else:   
                 input_val = tfh_obj.inputs[input_device_uid].values[input_channel]
                 #print(input_val)
-            converted_value = (input_val - y_axis) * gradient   
+            converted_value = ((input_val - y_axis) * gradient ) -1000  
             labels['Pressure'][i_p].configure(text=f"{round(converted_value, 2)} " + unit )
             i_p = i_p+1
+
+        if device_type == "FlowMeter":
+           
+            if tfh_obj.operation_mode == 1: #debug Mode
+                input_val = 0.0      
+            else:   
+                input_val = tfh_obj.inputs[input_device_uid].values[input_channel]
+                #print(input_val)
+            #converted_value = ((input_val/1e6 - y_axis) * gradient )
+            converted_value = 0 + (100 - 0)/(20-4)*(input_val/1e6 - 4)
+            if converted_value < 0:
+                converted_value = 0
+            labels['FlowMeter'][i_FI].configure(text=f"{round(converted_value, 2)} " + unit )
+            i_FI = i_FI+1
 
         if device_type == "mfc":
            
@@ -197,10 +211,12 @@ def tk_loopNew(tk_obj, tfh_obj)   :
         if device_type == "ExtInput":
             
             input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
-            labels['ExtInput'][i_exI].configure(text=f"{round(input_val, 2)} " + "mA" )
+            labels['ExtInput'][i_exI].configure(text=f"{round(input_val/1e6, 2)} " + "mA" )
             i_exI = i_exI+1
             # falls Heizung Steuerwert und Leistung
             converted_value = (input_val - y_axis) * gradient   
+            if converted_value < 0:
+                converted_value = 0
             labels['ExtInput'][i_exI].configure(text=f"{round(converted_value, 2)} " + unit )
             i_exI = i_exI+1
 
@@ -239,8 +255,8 @@ def create_labels(tk_obj, tfh_obj):
     frames = tk_obj.frames
     window = tk_obj
     tk_obj.labels = {}
-    MFCs = {}; Tcs = {}; pressure = {}; Vorgabe = {}; ExtInput  ={}
-    i_MFC = 0; i_Tc = 0; i_p = 0; i_V = 0; i_exI = 0
+    MFCs = {}; Tcs = {}; pressure = {}; Vorgabe = {}; ExtInput  ={}; FlowMeter  ={}
+    i_MFC = 0; i_Tc = 0; i_p = 0; i_V = 0; i_exI = 0; i_FI = 0
 #    name_Frame = ctk.CTkLabel( frames['mfc'], font = ('Arial',20), text='MFC Steuerung')
    # name_Frame.grid(column=0, columnspan =3, row=0, ipadx=7, ipady=7, pady =7, padx = 7, sticky = "E")
     
@@ -271,6 +287,12 @@ def create_labels(tk_obj, tfh_obj):
             pressure[i_p] = ctk.CTkLabel(window, font = ('Arial',18), text='0 bar')
             pressure[i_p].place(x=  control_rule.get("x"), y= control_rule.get("y"))
             i_p = i_p+1 # inkrement 
+            
+        elif device_type == "FlowMeter":
+            FlowMeter[i_FI] = ctk.CTkLabel(window, font = ('Arial',18), text='0 kg/h')
+            FlowMeter[i_FI].place(x=  control_rule.get("x"), y= control_rule.get("y"))
+            i_FI = i_FI+1 # inkrement 
+
         if device_type == "Vorgabe":
             unit = control_rule["DeviceInfo"].get("unit")
             Vorgabe[i_V] = ctk.CTkLabel(window, font = ('Arial',18), text=unit)
@@ -296,7 +318,7 @@ def create_labels(tk_obj, tfh_obj):
     save_label = ctk.CTkLabel(frames['control'], font=('Arial', 16), text=short_text)
     save_label.grid(column=0, columnspan = 2, row=3, ipadx=7, ipady=7)
 
-    tk_obj.labels = {'MFC' : MFCs, 'Tc': Tcs, 'Pressure' : pressure, 'Vorgabe' : Vorgabe, 'ExtInput' : ExtInput, 'Save': save_label}
+    tk_obj.labels = {'MFC' : MFCs, 'Tc': Tcs, 'Pressure' : pressure, 'Vorgabe' : Vorgabe, 'FlowMeter' : FlowMeter, 'ExtInput' : ExtInput, 'Save': save_label}
 
     return tk_obj
 
@@ -440,6 +462,9 @@ def save_values(tk_obj, tfh_obj):
             if device_type == "Vorgabe": 
                 line += str(entries['Vorgabe'][i_V].get()) + ' \t '
                 i_V = i_V+1
+            if device_type == "FlowMeter": 
+                input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
+                line += str(input_val) + '\t'
 
             if device_type == "ExtInput": 
                 input_val = tfh_obj.inputs[input_device_uid].values[input_channel]  
