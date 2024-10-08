@@ -91,7 +91,7 @@ class TKH:
             window.geometry(f"{scrW}x{scrH}")
             window.title(self.config['TKINTER'].get('Name', 'Default Title'))
             window.configure(bg=self.config['TKINTER'].get('background-color', '#FFFFFF'))
-            window.attributes('-fullscreen', self.config['TKINTER'].get('fullscreen', True))
+            #window.attributes('-fullscreen', self.config['TKINTER'].get('fullscreen', True))
             
             return window
 
@@ -159,22 +159,29 @@ class TKH:
             if device_type == "mfc":
                 idx = index_counters['MFC']
                 labels_dict['MFC'][idx] = self._create_label(
-                    parent=self.frames['mfc'],
+                    parent=self.window,
+                    # parent=self.frames['mfc'],
                     text='0 mV',
                     font_size=18,
-                    grid_opts={'column': 4, 'row': idx + 1, 'ipadx': 7, 'ipady': 7, 'padx': 20, 'pady': 20}
+                    #grid_opts={'column': 4, 'row': idx + 1, 'ipadx': 7, 'ipady': 7, 'padx': 20, 'pady': 20}
+                    x=control_rule.get("x")+25,
+                    y=control_rule.get("y")+45,
                 )
-                self._create_label(
-                    parent=self.frames['mfc'],
+                """  self._create_label(
+                    parent=self.window,
                     text=control_name,
                     font_size=18,
-                    grid_opts={'column': 1, 'row': idx + 1, 'ipadx': 5, 'ipady': 7, 'padx': 10, 'pady': 20}
-                )
+                    x=control_rule.get("x")+80,
+                    y=control_rule.get("y")
+                    #grid_opts={'column': 1, 'row': idx + 1, 'ipadx': 5, 'ipady': 7, 'padx': 10, 'pady': 20}
+                ) """
                 self._create_label(
-                    parent=self.frames['mfc'],
+                    parent=self.window,
                     text=control_rule["DeviceInfo"].get("unit", 'mV'),
                     font_size=18,
-                    grid_opts={'column': 3, 'row': idx + 1, 'ipadx': 1, 'ipady': 7, 'padx': 20, 'pady': 20}
+                    x=control_rule.get("x")+50,
+                    y=control_rule.get("y")
+                    #grid_opts={'column': 3, 'row': idx + 1, 'ipadx': 1, 'ipady': 7, 'padx': 20, 'pady': 20}
                 )
                 index_counters['MFC'] += 1
 
@@ -308,9 +315,11 @@ class TKH:
 
             if device_type == "mfc":
                 entries_dict['MFC'][i_MFC] = self._create_entry(
-                    parent=self.frames['mfc'],
+                    parent=self.window,
                     default_text="0",
-                    grid_opts={'column': 2, 'row': i_MFC + 1, 'ipadx': 5, 'ipady': 7},
+                    x=control_rule.get("x"),
+                    y=control_rule.get("y"),
+                    #grid_opts={'column': 2, 'row': i_MFC + 1, 'ipadx': 5, 'ipady': 7},
                     font=('Arial', 18),
                     width=40,
                     fg_color='light blue'
