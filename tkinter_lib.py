@@ -137,7 +137,7 @@ class TKH:
                     name_frame.grid(
                         column=0, columnspan=2, row=0,
                         ipadx=7, ipady=7, pady=7, padx=7, sticky="E"
-                    )
+                    ) 
 
         # Speichern der Frames im Klassenattribut
         self.frames = frames_dict
@@ -162,19 +162,19 @@ class TKH:
                     parent=self.frames['mfc'],
                     text='0 mV',
                     font_size=18,
-                    grid_opts={'column': 4, 'row': idx + 1, 'ipadx': 7, 'ipady': 7}
+                    grid_opts={'column': 4, 'row': idx + 1, 'ipadx': 7, 'ipady': 7, 'padx': 20, 'pady': 20}
                 )
                 self._create_label(
                     parent=self.frames['mfc'],
                     text=control_name,
                     font_size=18,
-                    grid_opts={'column': 1, 'row': idx + 1, 'ipadx': 5, 'ipady': 7}
+                    grid_opts={'column': 1, 'row': idx + 1, 'ipadx': 5, 'ipady': 7, 'padx': 10, 'pady': 20}
                 )
                 self._create_label(
                     parent=self.frames['mfc'],
                     text=control_rule["DeviceInfo"].get("unit", 'mV'),
                     font_size=18,
-                    grid_opts={'column': 3, 'row': idx + 1, 'ipadx': 1, 'ipady': 7}
+                    grid_opts={'column': 3, 'row': idx + 1, 'ipadx': 1, 'ipady': 7, 'padx': 20, 'pady': 20}
                 )
                 index_counters['MFC'] += 1
 
@@ -253,7 +253,7 @@ class TKH:
         buttons_dict['Set'] = self._create_button(
             parent=self.frames['control'],
             text='Set Values',
-            command=lambda: self.setdata(tfh_obj),  # Replace with the correct method
+            command=lambda: self.set_data(),  # Replace with the correct method
             grid_opts={'column': 0, 'row': 1, 'ipadx': 8, 'ipady': 8, 'padx': 20, 'pady': 10},  # Added padx for left margin, pady for vertical spacing
             fg_color='brown',
             text_color='white'
@@ -312,7 +312,7 @@ class TKH:
                     default_text="0",
                     grid_opts={'column': 2, 'row': i_MFC + 1, 'ipadx': 5, 'ipady': 7},
                     font=('Arial', 18),
-                    width=6,
+                    width=40,
                     fg_color='light blue'
                 )
                 i_MFC += 1
@@ -324,7 +324,7 @@ class TKH:
                     x=control_rule.get("x"),
                     y=control_rule.get("y"),
                     font=('Arial', 18),
-                    width=4,
+                    width=40,
                     fg_color='light blue'
                 )
                 i_V += 1
@@ -352,10 +352,10 @@ class TKH:
 
                 # Create the easy_PI controller
                 if "extern" in control_rule.get("input_device", "").lower():
-                    controllers_dict['easy_PI'][i_PI] = easy_PI(out_device, out_channel, "extern", 0, P_val, I_val)
+                    controllers_dict['easy_PI'][i_PI] = easy_PI(out_device, out_channel, "extern", 0, I_val, P_val)
                 else:
                     in_device = tfh_obj.config[control_rule.get("input_device")].get("input_device")
-                    controllers_dict['easy_PI'][i_PI] = easy_PI(out_device, out_channel, tfh_obj.inputs[in_device], 0, P_val, I_val)
+                    controllers_dict['easy_PI'][i_PI] = easy_PI(out_device, out_channel, tfh_obj.inputs[in_device], 0, I_val, P_val)
 
                 # Create an entry widget for the controller
                 controllers_dict['easy_PI'][i_PI].entry = ctk.CTkEntry(
