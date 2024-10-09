@@ -29,7 +29,6 @@ class TKH:
         # Initialize window and other components
         self.window = self.initialize_window()
         self.set_background_image()
-        self.frames = self.create_frames()
         self.labels = {}  # Initialize the labels dictionary
         self.entries = {}  # Initialize the entries dictionary
         self.buttons = {}  # Initialize the buttons dictionary
@@ -43,7 +42,7 @@ class TKH:
         self.setup_controller(tfh_obj)
     
     def _create_label(self, parent, text, font_size, x=None, y=None, grid_opts=None, **kwargs):
-        label = ctk.CTkLabel(parent, font=('Arial', font_size), text=text, **kwargs)
+        label = ctk.CTkLabel(parent, font=('Arial', font_size), text=text, **kwargs, bg_color='white')
         if grid_opts:
             label.grid(**grid_opts)
         else:
@@ -122,11 +121,17 @@ class TKH:
                     border_color=frame_config.get('border_color', '#000000'),
                     border_width=frame_config.get('border_width', 5)
                 )
-                frames_dict[frame_name].grid(
-                    padx=frame_config.get('padx', 20),
-                    pady=frame_config.get('pady', 20)
-                )
-
+                if 'x' in frame_config and 'y' in frame_config:
+                    frames_dict[frame_name].place(
+                        x=frame_config['x'],
+                        y=frame_config['y']
+                    )
+                else:
+                    frames_dict[frame_name].grid(
+                        padx=frame_config.get('padx', 20),
+                        pady=frame_config.get('pady', 20)
+                    )
+                
                 # Erstelle ein Label im Frame, wenn ein Titel in der Konfiguration vorhanden ist
                 if 'title' in frame_config:
                     name_frame = ctk.CTkLabel(
@@ -138,7 +143,7 @@ class TKH:
                         column=0, columnspan=2, row=0,
                         ipadx=7, ipady=7, pady=7, padx=7, sticky="E"
                     ) 
-
+ 
         # Speichern der Frames im Klassenattribut
         self.frames = frames_dict
 
@@ -192,8 +197,7 @@ class TKH:
                     text='0 °C',
                     font_size=18,
                     x=control_rule.get("x"),
-                    y=control_rule.get("y"),
-                    bg_color='white'
+                    y=control_rule.get("y")
                 )
                 index_counters['Tc'] += 1
 
@@ -245,7 +249,8 @@ class TKH:
                     text='0 Watt',
                     font_size=18,
                     x=control_rule.get("x"),
-                    y=control_rule.get("y") + 40
+                    y=control_rule.get("y") + 40,
+                    bg_color='white'
                 )
                 index_counters['ExtInput'] += 2  # Increment by 2 since two labels are added
 
@@ -255,6 +260,18 @@ class TKH:
     def create_buttons(self, tfh_obj):
         # Example: Create a dictionary to hold button references
         buttons_dict = {}
+
+        # Ventile und Schalter aus TinkerForge Config
+        for control_name, control_rule in tfh_obj.config.items():
+            device_type = control_rule.get("type")
+            if device_type == "valve":
+                buttons_dict[control_name] = ctk.CTkSwitch(
+                        self.window,
+                        text = control_name,
+                        font = ('Arial', 16),
+                        bg_color='white',
+                    )
+                buttons_dict[control_name].place(x=control_rule.get('x'), y=control_rule.get('y'))
 
         # Set Button
         buttons_dict['Set'] = self._create_button(
@@ -379,7 +396,8 @@ class TKH:
                 controllers_dict['easy_PI'][i_PI].label = ctk.CTkLabel(
                     self.window,
                     font=('Arial', 18),
-                    text='0 %'
+                    text='0 %',
+                    bg_color='white'
                 )
                 controllers_dict['easy_PI'][i_PI].label.place(x=control_rule.get("x"), y=control_rule.get("y") + 35)
 
@@ -561,7 +579,12 @@ class TKH:
             elif device_type == "easy_PI":
                 self.controller['easy_PI'][i_PI].regeln()
                 converted_value = self.controller['easy_PI'][i_PI].out * 100
-                self.controller['easy_PI'][i_PI].label.configure(text=f"{round(converted_value, 2)} {unit}")
+                if control_rule["DeviceInfo"].get('Power', False):
+                    Power = control_rule["DeviceInfo"].get('Power')
+                    self.controller['easy_PI'][i_PI].label.configure(text=f"{round(converted_value*Power, 0)} {unit}")
+                else:
+                    self.controller['easy_PI'][i_PI].label.configure(text=f"{round(converted_value, 2)} {unit}")
+
                 if control_rule.get("output_type") == "analog":
                     converted_value = (4 + (20 - 4) / 100 * converted_value) * 1000
                 self.tfh_obj.outputs[output_device_uid].values[output_channel] = converted_value
@@ -573,11 +596,19 @@ class TKH:
                 self.labels['ExtInput'][i_exI].configure(text=f"{round(input_val / 1e6, 2)} mA")
                 i_exI += 1
                 # Display power value if it's a heater
-                converted_value = (input_val - y_axis) * gradient
-                if converted_value < 0:
-                    converted_value = 0
-                self.labels['ExtInput'][i_exI].configure(text=f"{round(converted_value, 2)} {unit}")
+                if control_rule["DeviceInfo"].get('Power', False):
+                    converted_value = (input_val - y_axis) * gradient
+                    if converted_value < 0:
+                        converted_value = 0
+                    self.labels['ExtInput'][i_exI].configure(text=f"{round(converted_value, 2)} {unit}")
                 i_exI += 1
+
+            # Handle external inputs
+            elif device_type == "valve":
+                if self.buttons[control_name].get() == 1:
+                    self.tfh_obj.outputs[output_device_uid].values[output_channel] = True
+                else:
+                    self.tfh_obj.outputs[output_device_uid].values[output_channel] = False
 
         # Save values periodically
         if self.buttons['Save'].get() == 1 and time.time() - self.save_timer > 1:
