@@ -269,7 +269,7 @@ class TKH:
                         self.window,
                         text = control_name,
                         font = ('Arial', 16),
-                        bg_color='white',
+                        bg_color=self.config['TKINTER'].get('background-color', '#FFFFFF')
                     )
                 buttons_dict[control_name].place(x=control_rule.get('x'), y=control_rule.get('y'))
 
@@ -309,6 +309,7 @@ class TKH:
                 text="",
                 command=self.window.destroy,
                 fg_color='transparent',
+                bg_color= 'white',
                 hover_color='#F2F2F2',
                 image=close_img
             )
@@ -553,7 +554,7 @@ class TKH:
             elif device_type == "pressure":
                 if self.tfh_obj.operation_mode != 1:  # Not in debug mode
                     input_val = self.tfh_obj.inputs[input_device_uid].values[input_channel]
-                    converted_value = ((input_val - y_axis) * gradient)
+                    converted_value = ((input_val/1e6 - y_axis) * gradient)
                     self.labels['Pressure'][i_p].configure(text=f"{round(converted_value, 2)} {unit}")
                 i_p += 1
 
