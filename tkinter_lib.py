@@ -3,16 +3,35 @@
 import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
-from tkinter.filedialog import asksaveasfilename
+from tkinter.filedialog import asksaveasfilename, askopenfilename
+from tkinter import messagebox
 from datetime import datetime, timedelta
 from utilities.regler import *
 from utilities.data_functions import *
 import time
 import json
 import os
+import openpyxl
 
 save_timer = time.time()
 write_header = 1
+
+def Excel_timing(sheet, section, t0):
+        input = sheet[section]
+        output = []
+        for wert in input:
+            if wert.value is not None:
+                output.append(wert.value)    
+        section_time = output[0]
+        
+        t_section = section_time - (time.time() - t0)
+        
+
+        if t_section < 0:
+            section +=1
+            t0 = time.time()
+
+        return output, section, t_section, t0
 
 class TKH:
     def __init__(self, tfh_obj, json_name=False):
@@ -20,7 +39,7 @@ class TKH:
         self.tfh_obj = tfh_obj
         self.write_header = True  # Flag to control header writing
         self.save_timer = time.time()
-
+        self.running_excel = 0
         # Load configuration
         self.config = self.get_config(json_name)
         if not self.config:
@@ -254,6 +273,17 @@ class TKH:
                 )
                 index_counters['ExtInput'] += 2  # Increment by 2 since two labels are added
 
+        
+        if self.config['TKINTER'].get('has_excel_function', False):
+            labels_dict['Timer'] = self._create_label(
+                    parent=self.frames['control'],
+                    text='0 min',
+                    font_size=18,
+                    grid_opts={'column': 2, 'row': 0, 'ipadx': 2, 'ipady': 2, 'padx': 10, 'pady': 10},  # Added padx for left margin, pady for vertical spacing
+            
+                )
+
+
         # Save all created labels into the class attribute
         self.labels = labels_dict
 
@@ -278,10 +308,37 @@ class TKH:
             parent=self.frames['control'],
             text='Set Values',
             command=lambda: self.set_data(),  # Replace with the correct method
-            grid_opts={'column': 0, 'row': 1, 'ipadx': 8, 'ipady': 8, 'padx': 20, 'pady': 10},  # Added padx for left margin, pady for vertical spacing
+            grid_opts={'column': 0, 'row': 1, 'ipadx': 8, 'ipady': 6, 'padx': 20, 'pady': 10},  # Added padx for left margin, pady for vertical spacing
             fg_color='brown',
             text_color='white'
         )
+        
+        # Excel Button, falls in der Konfiguration aktiviert
+        if self.config['TKINTER'].get('has_excel_function', False):
+            buttons_dict['StartExcel'] = self._create_button(
+                parent=self.frames['control'],
+                text='Start Excel',
+                command=lambda: self.start_excel(),  # Replace with the correct method
+                grid_opts={'column': 2, 'row': 3, 'ipadx': 8, 'ipady': 6, 'padx': 20, 'pady': 10},  # Added padx for left margin, pady for vertical spacing
+                fg_color='brown',
+                text_color='white'
+            )  
+            buttons_dict['StopExcel'] = self._create_button(
+                parent=self.frames['control'],
+                text='Stop Excel',
+                command=lambda: self.stop_excel(),  # Replace with the correct method
+                grid_opts={'column': 2, 'row': 4, 'ipadx': 8, 'ipady': 6, 'padx': 20, 'pady': 10},  # Added padx for left margin, pady for vertical spacing
+                fg_color='brown',
+                text_color='white'
+            )              
+            buttons_dict['GetExcel'] = self._create_button(
+                parent=self.frames.get('control', self.window),
+                text='Excel File',
+                command=self.get_Excelfile,
+                grid_opts={'column': 0, 'row': 3, 'ipadx': 8, 'ipady': 6, 'padx': 20, 'pady': 10},
+                fg_color='brown',
+                text_color='white'
+            )
 
         # Save Switch and Get FileName Button, falls in der Konfiguration aktiviert
         if self.config['TKINTER'].get('has_save_function', False):
@@ -290,13 +347,13 @@ class TKH:
                 text="Speichern",
                 font=('Arial', 16)
             )
-            buttons_dict['Save'].grid(column=2, row=1, ipadx=7, ipady=7, padx=20, pady=10)
+            buttons_dict['Save'].grid(column=2, row=2, ipadx=7, ipady=7, padx=20, pady=10)
 
             buttons_dict['GetFile'] = self._create_button(
                 parent=self.frames.get('control', self.window),
                 text='Data File',
                 command=self.get_file,
-                grid_opts={'column': 0, 'row': 2, 'ipadx': 8, 'ipady': 8, 'padx': 20, 'pady': 20},
+                grid_opts={'column': 0, 'row': 2, 'ipadx': 8, 'ipady': 6, 'padx': 20, 'pady': 10},
                 fg_color='brown',
                 text_color='white'
             )
@@ -314,7 +371,8 @@ class TKH:
                 image=close_img
             )
             buttons_dict['Exit'].place(x=self.config['Close']['x'], y=self.config['Close']['y'])
-
+        
+       
 
         # Save the created buttons into the class attribute
         self.buttons = buttons_dict
@@ -356,9 +414,10 @@ class TKH:
                 )
                 i_V += 1
 
-        # Save the entries and a placeholder for the save file
+        # Save the entries and a placeholder for the save and excel file
         self.entries = entries_dict
         self.entries['SaveFile'] = "../Daten/test.dat"
+        self.entries['ExcelFile'] = "../Excel.xlsx"
 
     def setup_controller(self, tfh_obj):
         # Initialize dictionaries for controllers
@@ -478,6 +537,27 @@ class TKH:
             data_line += '\n'
             f.write(data_line)
 
+    def start_excel(self):
+        self.excel_data = openpyxl.load_workbook(self.entries['ExcelFile'], data_only=True)
+        self.running_excel = 1
+        self.section = 4 # Start in Zeile 4
+        self.t0 = time.time()
+        self.sheet =  self.excel_data["Ablauf"]
+        tmp = self.sheet[1][1]
+        if tmp.value is None:
+            messagebox.showerror("Excelfehler", "Laufzeit nicht in Excelsheet!")
+        self.run_time = tmp.value*60 + self.t0
+        self.buttons['Save'].select()
+        self.buttons['StartExcel'].configure(state = "disabled")
+        print("Start")
+
+    def stop_excel(self):
+        self.running_excel = 0
+        self.buttons['StartExcel'].configure(state = "enabled")
+        self.buttons['Save'].deselect()
+        self.labels["Timer"].configure(text = str("{0:.2f}").format(0)+" min")
+        print("Stop")
+
     def set_data(self):
         i_MFC = 0
         i_PI = 0
@@ -522,9 +602,23 @@ class TKH:
             if 'Save' in self.labels:
                 self.labels['Save'].configure(text=short_text)
 
+    def get_Excelfile(self):
+        global excel_file
+        # Method to handle file selection
+        file_path = askopenfilename(defaultextension=".xlsx", initialdir="./")
+        if file_path:
+            self.entries['ExcelFile'] = file_path
+
+            # Update a label or other widget to reflect the new file path
+            parent_folder = os.path.basename(os.path.dirname(file_path))
+            file_name = os.path.basename(file_path)
+            short_text = f"{parent_folder}/{file_name}"
+            if 'ExcelFile' in self.labels:
+                self.labels['ExcelFile'].configure(text=short_text)
+
     def run(self):
         self.window.mainloop()
-
+    
     def start_loop(self):
         i_MFC = 0
         i_Tc = 0
@@ -532,6 +626,23 @@ class TKH:
         i_p = 0
         i_exI = 0
         i_FI = 0
+        if self.running_excel == 1:
+            entries = self.entries
+            controller = self.controller
+            self.t_end = self.run_time - (time.time() ) 
+            output, self.section, self.t_section, self.t0 = Excel_timing(self.sheet, self.section, self.t0)
+            self.labels['Timer'].configure(text = str("{0:.2f}").format(self.t_end/60)+" min")
+            # Verdampfer
+            controller['easy_PI'][0].entry.delete(0, tk.END)
+            controller['easy_PI'][0].entry.insert(0,str("{0:.2f}").format(output[1]))
+            
+            # MFC
+            entries['MFC'][0].delete(0, tk.END)
+            entries['MFC'][0].insert(0,str("{0:.2f}").format(2))
+
+            self.set_data()
+            if (self.t_end  < 0):
+                self.stop_excel()  
 
         # Iterate over the configuration to update labels and data
         for control_name, control_rule in self.tfh_obj.config.items():
