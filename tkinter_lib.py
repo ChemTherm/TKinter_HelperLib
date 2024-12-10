@@ -39,6 +39,7 @@ class TKH:
         self.tfh_obj = tfh_obj
         self.write_header = True  # Flag to control header writing
         self.save_timer = time.time()
+        self.section=0
         self.running_excel = 0
         # Load configuration
         self.config = self.get_config(json_name)
@@ -441,7 +442,8 @@ class TKH:
                     controllers_dict['easy_PI'][i_PI] = easy_PI(out_device, out_channel, "extern", 0, I_val, P_val)
                 else:
                     in_device = tfh_obj.config[control_rule.get("input_device")].get("input_device")
-                    controllers_dict['easy_PI'][i_PI] = easy_PI(out_device, out_channel, tfh_obj.inputs[in_device], 0, I_val, P_val)
+                    security_device = tfh_obj.config[control_rule.get("security_input_device")].get("input_device")
+                    controllers_dict['easy_PI'][i_PI] = easy_PI(out_device, out_channel, tfh_obj.inputs[in_device], 0, I_val, P_val, tfh_obj.inputs[security_device])
 
                 # Create an entry widget for the controller
                 controllers_dict['easy_PI'][i_PI].entry = ctk.CTkEntry(
@@ -460,7 +462,6 @@ class TKH:
                     bg_color='white'
                 )
                 controllers_dict['easy_PI'][i_PI].label.place(x=control_rule.get("x"), y=control_rule.get("y") + 35)
-
                 i_PI += 1
 
         # Save the controllers into the class attribute
@@ -476,7 +477,7 @@ class TKH:
         if self.write_header:
             write_device_informations(self, self.tfh_obj)         
             with open(self.entries['SaveFile'], 'a') as f:
-                header_line = '### Device Names \n Zeitpunkt \t'
+                header_line = '### Device Names \n Zeitpunkt \t Section \t '
                 for control_name, control_rule in self.tfh_obj.config.items():
                     device_type = control_rule.get("type")
                     if device_type == "mfc":
@@ -489,7 +490,7 @@ class TKH:
 
         # Write data
         with open(self.entries['SaveFile'], 'a') as f:
-            data_line = f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}\t"
+            data_line = f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}\t " + f"{self.section}\t"
             for control_name, control_rule in self.tfh_obj.config.items():
                 input_channel = control_rule.get("input_channel")
                 input_device_uid = control_rule.get("input_device")
@@ -638,7 +639,7 @@ class TKH:
             
             # MFC
             entries['MFC'][0].delete(0, tk.END)
-            entries['MFC'][0].insert(0,str("{0:.2f}").format(2))
+            entries['MFC'][0].insert(0,str("{0:.2f}").format(output[2]))
 
             self.set_data()
             if (self.t_end  < 0):
